@@ -121,6 +121,10 @@ export default function StreamView({
         }),
       });
       const newSong = await res.json();
+      console.log(
+        newSong,
+        "vikash---------------------------------------------"
+      );
       setQueue((prevQueue) => [...prevQueue, { ...newSong, color: newColor }]);
 
       setVideoUrl("");

@@ -30,32 +30,7 @@ export async function POST(req: NextRequest) {
 
     const extractedId = data.url.split("?v=")[1];
     //@ts-ignore
-    // const res = await youtubeSearch.GetVideoDetails(extractedId);
-    const TIMEOUT_MS = 8000; // Set to 8 seconds
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    let res;
-    try {
-      // Pass the signal to youtubeSearch request to handle timeouts
-      res = await youtubeSearch.GetVideoDetails(extractedId, {
-        signal: controller.signal,
-      });
-      console.log("Video details fetched:", res);
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === "AbortError") {
-        console.log("YouTube API request timed out");
-        return NextResponse.json(
-          { message: "YouTube API request timed out" },
-          { status: 504 }
-        );
-      } else {
-        throw error;
-      }
-    } finally {
-      clearTimeout(timeoutId); // Clear timeout if completed
-    }
-
+    const res = await youtubeSearch.GetVideoDetails(extractedId);
     const thumbnails = res.thumbnail.thumbnails;
     thumbnails.sort((a: { width: number }, b: { width: number }) =>
       a.width < b.width ? -1 : 1

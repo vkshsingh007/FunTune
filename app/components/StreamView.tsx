@@ -34,11 +34,10 @@ export default function StreamView({
   const [queue, setQueue] = useState<NewStreamProps[]>([]);
   const [loading, setLoading] = useState(false);
   async function refreshStream() {
-    const res = await axios.get(`/api/streams/?creatorId=${creatorId}`, {
-      withCredentials: true,
-    });
+    const res = await fetch(`/api/streams/?creatorId=${creatorId}`);
+    const data = await res.json();
     setQueue((prevQueue) => [
-      ...res.data.streams
+      ...data.streams
         .map((song: StreamProps) => {
           const newColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
           return {
@@ -49,10 +48,10 @@ export default function StreamView({
         .sort((a: NewStreamProps, b: NewStreamProps) => b.upvotes - a.upvotes),
     ]);
     setCurrentStream((video: StreamProps | null) => {
-      if (video?.id === res.data.activeStream?.stream?.id) {
+      if (video?.id === data.activeStream?.stream?.id) {
         return video;
       }
-      return res.data.activeStream?.stream;
+      return data.activeStream?.stream;
     });
   }
   useEffect(() => {

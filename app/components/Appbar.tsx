@@ -46,19 +46,19 @@ const Appbar = () => {
         </Button> */}
 
       {session.data?.user ? (
-        <button
+        <Button
           className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full text-md transition-colors duration-300"
           onClick={() => signOut()}
         >
           SignOut
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
           className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-5 rounded-full text-md transition-colors duration-300"
           onClick={() => signIn()}
         >
           Sign in
-        </button>
+        </Button>
       )}
     </>
   );

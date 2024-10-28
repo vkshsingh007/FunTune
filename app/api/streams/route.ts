@@ -4,6 +4,8 @@ import { prismaClient } from "@/app/lib/db";
 //@ts-ignore
 import youtubeSearch from "youtube-search-api";
 import { getServerSession } from "next-auth";
+import { getLoggedInUser } from "@/lib/utils";
+const MAX_QUEUE_LENGTH = 20;
 var urlRegex =
   /^(?:(?:https?:)?\/\/)?(?:www\.)?(?:m\.)?(?:youtu(?:be)?\.com\/(?:v\/|embed\/|watch(?:\/|\?v=))|youtu\.be\/)((?:\w|-){11})(?:\S+)?$/;
 const CreateStreamSchema = z.object({
@@ -34,6 +36,16 @@ export async function POST(req: NextRequest) {
       a.width < b.width ? -1 : 1
     );
 
+    const existingActiveStream = await prismaClient.stream.count({
+      where: {
+        userId: data.creatorId,
+      },
+    });
+
+    if (existingActiveStream > MAX_QUEUE_LENGTH) {
+      return NextResponse.json({ message: "Queue is full" }, { status: 401 });
+    }
+
     const stream = await prismaClient.stream.create({
       data: {
         userId: data.creatorId,
@@ -46,6 +58,7 @@ export async function POST(req: NextRequest) {
             ? thumbnails[thumbnails.length - 2].url
             : thumbnails[thumbnails.length - 1].url) ?? "",
         bigImg: thumbnails[thumbnails.length - 1].url ?? "",
+        addedById: data.creatorId,
       },
     });
 

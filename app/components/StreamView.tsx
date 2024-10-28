@@ -1,13 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Music2, Plus, ChevronUp, ChevronDown, X, Share2 } from "lucide-react";
 import { motion, AnimatePresence, color } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import axios from "axios";
+//@ts-ignore
+import YouTubePlayer from "youtube-player";
 import Image from "next/image";
 import { Stream } from "@prisma/client";
+import { signIn, signOut, useSession } from "next-auth/react";
 type StreamProps = Stream;
 interface NewStreamProps extends StreamProps {
   upvotes: number;
@@ -24,6 +26,7 @@ export default function StreamView({
   creatorId: string;
   playVideo?: boolean;
 }) {
+  const session = useSession();
   const [videoUrl, setVideoUrl] = useState("");
   const [previewId, setPreviewId] = useState("");
   const [isAddingSong, setIsAddingSong] = useState(false);
@@ -33,26 +36,32 @@ export default function StreamView({
   );
   const [queue, setQueue] = useState<NewStreamProps[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const videoPlayerRef = useRef(null);
   async function refreshStream() {
     const res = await fetch(`/api/streams/?creatorId=${creatorId}`);
-    const data = await res.json();
-    setQueue((prevQueue) => [
-      ...data.streams
-        .map((song: StreamProps) => {
-          const newColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
-          return {
-            ...song,
-            color: newColor,
-          };
-        })
-        .sort((a: NewStreamProps, b: NewStreamProps) => b.upvotes - a.upvotes),
-    ]);
-    setCurrentStream((video: StreamProps | null) => {
-      if (video?.id === data.activeStream?.stream?.id) {
-        return video;
-      }
-      return data.activeStream?.stream;
-    });
+    const data = await res?.json();
+    if (data.message !== "Unauthenticated") {
+      setQueue([
+        ...data.streams
+          .map((song: StreamProps) => {
+            const newColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+            return {
+              ...song,
+              color: newColor,
+            };
+          })
+          .sort(
+            (a: NewStreamProps, b: NewStreamProps) => b.upvotes - a.upvotes
+          ),
+      ]);
+      setCurrentStream((video: StreamProps | null) => {
+        if (video?.id === data.activeStream?.stream?.id) {
+          return video;
+        }
+        return data.activeStream?.stream;
+      });
+    }
   }
   useEffect(() => {
     setCurrentRotation((prev) => (prev + 1) % 360);
@@ -61,6 +70,31 @@ export default function StreamView({
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!videoPlayerRef.current && currentStream !== null) {
+      return;
+    }
+
+    let player = YouTubePlayer(videoPlayerRef.current);
+
+    const videoId = currentStream?.extractedId.substring(0, 11);
+
+    player.loadVideoById(videoId);
+
+    player.playVideo();
+
+    function videoEventHandler(event: any) {
+      if (event.data === 0) {
+        playNext();
+      }
+    }
+    player.on("stateChange", videoEventHandler);
+
+    return () => {
+      player.destroy();
+    };
+  }, [currentStream, videoPlayerRef]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setVideoUrl(e.target.value);
@@ -100,7 +134,7 @@ export default function StreamView({
     const shareData = {
       title: "Fun Tune",
       text: "Vote for your favorite songs and help decide what plays next!",
-      url: `${window.location.hostname}/creator/${creatorId}`,
+      url: `${window.location.origin}/creator/${creatorId}`,
     };
 
     try {
@@ -111,7 +145,7 @@ export default function StreamView({
           description: "Your fans can now join the Cosmic Jukebox.",
         });
       } else {
-        await navigator.clipboard.writeText(window.location.href);
+        await navigator.clipboard.writeText(window.location.origin);
         toast({
           title: "Link copied to clipboard!",
           description:
@@ -181,6 +215,22 @@ export default function StreamView({
             >
               <Plus className="mr-2" /> Add Song
             </Button>
+
+            {session.data?.user ? (
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 text-md transition-colors duration-300"
+                onClick={() => signOut()}
+              >
+                SignOut
+              </Button>
+            ) : (
+              <Button
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-5 rounded-full text-md transition-colors duration-300"
+                onClick={() => signIn()}
+              >
+                Sign in
+              </Button>
+            )}
           </div>
         </header>
 
@@ -194,7 +244,8 @@ export default function StreamView({
                 }}
               ></div>
               <div className="absolute inset-1 bg-black flex items-center justify-center">
-                <iframe
+                <div ref={videoPlayerRef} />
+                {/* <iframe
                   width="100%"
                   height="100%"
                   src={`https://www.youtube.com/embed/${currentStream?.extractedId.substring(
@@ -204,7 +255,7 @@ export default function StreamView({
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="w-full h-full"
-                ></iframe>
+                ></iframe> */}
               </div>
             </div>
 

@@ -37,7 +37,6 @@ export default function StreamView({
     const res = await axios.get(`/api/streams/?creatorId=${creatorId}`, {
       withCredentials: true,
     });
-    console.log(res,'vikash')
     setQueue((prevQueue) => [
       ...res.data.streams
         .map((song: StreamProps) => {

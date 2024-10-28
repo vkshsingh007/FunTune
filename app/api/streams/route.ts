@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return NextResponse.json(
       {
-        message: error,
+        message: JSON.stringify(error),
       },
       {
         status: 411,

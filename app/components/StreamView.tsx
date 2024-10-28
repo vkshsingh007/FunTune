@@ -53,7 +53,7 @@ export default function StreamView({
       if (video?.id === res.data.activeStream?.stream?.id) {
         return video;
       }
-      return res.data.activeStream.stream;
+      return res.data.activeStream?.stream;
     });
   }
   useEffect(() => {

@@ -115,6 +115,9 @@ export default function StreamView({
       const newColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
       const res = await fetch("/api/streams/", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           creatorId: creatorId,
           url: videoUrl,
